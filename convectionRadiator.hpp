@@ -10,6 +10,7 @@ class convectionRadiator : public buttonListener, public messageListener {
 		mqttClient & client;
 		const char* stateTopic;
 		const char* availabilityTopic;
+		const char* speedTopic;
 
 		const unsigned int pwmPin;
 		const int rpmPins[4] = {D5, D6, D7, D2};
@@ -17,7 +18,7 @@ class convectionRadiator : public buttonListener, public messageListener {
 		unsigned int lastKnownSpeed = 500;
 		bool fansEnabled = true;
 	public:
-		convectionRadiator(const unsigned int pwmPin, const char* stateTopic, const char* availabilityTopic, mqttClient & client);
+		convectionRadiator(const unsigned int pwmPin, const char* stateTopic, const char* availabilityTopic, const char* speedTopic, mqttClient & client);
 
 		bool setFanSpeed(const unsigned int fanSpeed);
 		unsigned int getFanSpeed(const unsigned int pin);

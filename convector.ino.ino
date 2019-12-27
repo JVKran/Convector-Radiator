@@ -9,19 +9,17 @@ array<const char*, 2> topics = {"/woonkamer/radiator", "/woonkamer/radiator/brig
 WiFiClient espClient;
 mqttClient client("KraanBast2.4", "Snip238!", "192.168.178.74", topics, espClient);
 
-convectionRadiator convector(D3, "/woonkamer/radiator/state", "/woonkamer/radiator/availability", client);
+convectionRadiator convector(D3, "/woonkamer/radiator/state", "/woonkamer/radiator/availability", "/woonkamer/radiator/brightness/state", client);
 button fansEnabledButton(D0);
 // temperatureSensor tempSensor(A0, "/woonkamer/radiator/temperatuur", client);
 
 void callback(char* topic, byte* payload, unsigned int length) {
+    static String message;
     for (int i = 0; i < length; i++) {
-        client.message.concat((char)payload[i]);
+        message.concat((char)payload[i]);
     }
-    for (int i = 0; i < client.amountOfListeners; i++){
-        client.listeners[i]->messageReceived(client.message, topic);
-    }
-    client.sendMessage("Test", "Called back!");
-    client.message = "";  
+    client.notifyListeners(message, topic);
+    message = "";  
 }
 
 void setup() {
@@ -37,7 +35,7 @@ void setup() {
 
 void loop() {
     client.checkForMessages();
-    if(millis() > fansEnabledButton.lastCheck + 1000){
+    if(millis() > fansEnabledButton.lastCheck + 250){
         fansEnabledButton.lastCheck = millis();
         fansEnabledButton.update();
     }

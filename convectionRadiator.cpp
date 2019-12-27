@@ -1,9 +1,10 @@
 #include "convectionRadiator.hpp"
 
-convectionRadiator::convectionRadiator(const unsigned int pwmPin, const char* stateTopic, const char* availabilityTopic, mqttClient & client): 
+convectionRadiator::convectionRadiator(const unsigned int pwmPin, const char* stateTopic, const char* availabilityTopic, const char* speedTopic, mqttClient & client): 
 	client(client),
 	stateTopic(stateTopic),
 	availabilityTopic(availabilityTopic),
+	speedTopic(speedTopic),
 	pwmPin(pwmPin)
 {
 	analogWriteFreq(25000);
@@ -25,7 +26,7 @@ bool convectionRadiator::setFanSpeed(const unsigned int fanSpeed){
 		digitalWrite(D1, LOW);
 	}
 	//To see what's happening in the background
-	client.sendMessage("debug", String("fanSpeed: " + String(fanSpeed) + ", lastKnownSpeed: " + String(lastKnownSpeed)).c_str());
+	//client.sendMessage("debug", String("fanSpeed: " + String(fanSpeed) + ", lastKnownSpeed: " + String(lastKnownSpeed)).c_str());
 }
 
 unsigned int convectionRadiator::getFanSpeed(const unsigned int pin){
@@ -74,6 +75,7 @@ void convectionRadiator::messageReceived(const String & receivedMessage, const c
     	updateAvailability(true);
     } else {
     	setFanSpeed(receivedMessage.toInt() * 4);
+    	client.sendMessage(speedTopic, receivedMessage.c_str());
     }
 }
 
