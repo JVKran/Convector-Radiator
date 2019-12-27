@@ -15,7 +15,7 @@ bool convectionRadiator::setFanSpeed(const unsigned int fanSpeed){
 		analogWrite(pwmPin, fanSpeed);
 		client.sendMessage(stateTopic, "OFF");
 		digitalWrite(D1, LOW);
-	} else if(buttonPressed){
+	} else if(fansEnabled && fanSpeed > 200){		//Lower than this can't keep the fans blowing
 		analogWrite(pwmPin, fanSpeed);
 		lastKnownSpeed = fanSpeed;
 		client.sendMessage(stateTopic, "ON");
@@ -25,7 +25,7 @@ bool convectionRadiator::setFanSpeed(const unsigned int fanSpeed){
 		digitalWrite(D1, LOW);
 	}
 	//To see what's happening in the background
-	//client.publish("debug", String("fanSpeed: " + String(fanSpeed) + ", lastKnownSpeed: " + String(lastKnownSpeed)).c_str());
+	client.sendMessage("debug", String("fanSpeed: " + String(fanSpeed) + ", lastKnownSpeed: " + String(lastKnownSpeed)).c_str());
 }
 
 unsigned int convectionRadiator::getFanSpeed(const unsigned int pin){
@@ -65,26 +65,26 @@ bool convectionRadiator::turnedOn(){
 	}
 }
 
-void convectionRadiator::checkButton(){
-	buttonPressed = (digitalRead(D0) == HIGH);
-	if(!buttonPressed && buttonPressed != lastButtonState){
-		setFanSpeed(0);
-		lastButtonState = buttonPressed;
-	} else if(buttonPressed && buttonPressed != lastButtonState){
-		lastButtonState = buttonPressed;
-	}
-}
-
-void convectionRadiator::messageReceived(const String & receivedMessage){
+void convectionRadiator::messageReceived(const String & receivedMessage, const char* topic){
 	if(receivedMessage=="ON"){
         turnOn();
     } else if(receivedMessage=="OFF"){
         turnOff();
-    } else if(receivedMessage.substring(0, 2) == "FS"){
-        setFanSpeed(receivedMessage.substring(3).toInt()*10+23);
-    } else if(receivedMessage == "CONNECTED"){
+    }  else if(receivedMessage == "CONNECTED"){
     	updateAvailability(true);
-    } else if(receivedMessage == "DISCONNECTED"){
-    	updateAvailability(false);
+    } else {
+    	setFanSpeed(receivedMessage.toInt() * 4);
     }
 }
+
+void convectionRadiator::buttonPressed(){
+	fansEnabled = true;
+	updateAvailability(true);
+}
+
+void convectionRadiator::buttonReleased(){
+	fansEnabled = false;
+	setFanSpeed(0);
+	updateAvailability(false);
+}
+

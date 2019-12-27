@@ -4,26 +4,41 @@
 #include "Arduino.h"
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+#include "array.hpp"
 
 class messageListener {
     public:
-        virtual void messageReceived(const String & receivedMessage) = 0;
+        virtual void messageReceived(const String & receivedMessage, const char* topic = "") = 0;
 };
+
+void callback(char* topic, byte* payload, unsigned int length);
 
 class mqttClient {
     private:
         char* ssid;
         char* password;
         char* mqttServer;
-        char* topic;
+        array<const char*, 2> topics;
         PubSubClient client;
+
+        #define MSG_BUFFER_SIZE  (50)
+        char msg[MSG_BUFFER_SIZE];
+        int value = 0;
 
     public:
         String message;
         messageListener * listeners[5] = {};
         uint8_t amountOfListeners = 0;
 
-        mqttClient(char* ssid, char* password, char* mqttServer, char* topic, WiFiClient & espClient);
+        mqttClient(char* ssid, char* password, char* mqttServer, array<const char*, 2> topics, WiFiClient & espClient):
+            ssid(ssid),
+            password(password),
+            mqttServer(mqttServer),
+            topics(topics),
+            client(espClient)
+        {
+            WiFi.mode(WIFI_STA);
+        }
 
         void addListener(messageListener & listener){
             if(amountOfListeners <= 4){
@@ -35,25 +50,28 @@ class mqttClient {
         void setupWifi() {
             delay(10);
             WiFi.begin(ssid, password);
+
             while (WiFi.status() != WL_CONNECTED) {
-                delay(200);
+                delay(500);
             }
-            message = "CONNECTED";
-            for (int i = 0; i < amountOfListeners; i++){
-                listeners[i]->messageReceived(message);
+        }
+
+        void setupConnections(){
+            client.setServer(mqttServer, 1883);
+            client.setCallback(callback);
+            for(const auto & topic : topics){
+                client.subscribe(topic);
             }
-            message = "";
+            reconnect();                //Establish a connection by signing in with credentials.
+            sendMessage("debug", "Started up convector");
         }
 
         void reconnect() {
-            message = "DISCONNECTED";
-            for (int i = 0; i < amountOfListeners; i++){
-                listeners[i]->messageReceived(message);
-            }
-            message = "";
             while (!client.connected()) {
                 if (client.connect("ConvectorRadiator", "ConvectorClient", "Snip238!")) {
-                    client.subscribe("/woonkamer/radiator");
+                    for(const auto & topic : topics){
+                        client.subscribe(topic);
+                    }
                     message = "CONNECTED";
                     for (int i = 0; i < amountOfListeners; i++){
                         listeners[i]->messageReceived(message);
@@ -61,7 +79,7 @@ class mqttClient {
                     message = "";
                     break;
                 } else {
-                    delay(5000);
+                    delay(1000);
                 }
             }
         }
