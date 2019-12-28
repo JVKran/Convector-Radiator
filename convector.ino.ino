@@ -7,7 +7,7 @@
 
 array<const char*, 2> topics = {"/woonkamer/radiator", "/woonkamer/radiator/brightness"};
 WiFiClient espClient;
-mqttClient client("KraanBast2.4", "Snip238!", "192.168.178.74", topics, espClient);
+mqttClient client("SSID", "WPA", "Broker-IP", topics, espClient);
 
 convectionRadiator convector(D3, "/woonkamer/radiator/state", "/woonkamer/radiator/availability", "/woonkamer/radiator/brightness/state", client);
 button fansEnabledButton(D0);
